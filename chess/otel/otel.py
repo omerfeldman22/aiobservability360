@@ -10,12 +10,14 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
-from opentelemetry.sdk.metrics import MeterProvider as SDKMeterProvider
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.instrumentation.openai import OpenAIInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
@@ -75,6 +77,11 @@ def configure_telemetry(service_name: str, service_version: str, deployment_env:
     logging.basicConfig(level=logging.INFO)
     logging.getLogger().addHandler(logging_handler)
     
+    # Auto-Instrumentation
+    OpenAIInstrumentor().instrument(capture_response=True)                # record prompt/response length
+    RequestsInstrumentor().instrument()
+    HTTPXClientInstrumentor().instrument()
+
     # Use a combined name for meter and tracer instead of __name__
     identifier = f"{service_name}-{service_version}"
     
@@ -102,9 +109,9 @@ def trace_span(span_name, tracer):
 def shutdown_telemetry():
     tp = trace.get_tracer_provider()
     mp = metrics.get_meter_provider()
-    if isinstance(tp, SDKTracerProvider):
+    if isinstance(tp, TracerProvider):
         tp.shutdown()
-    if isinstance(mp, SDKMeterProvider):
+    if isinstance(mp, MeterProvider):
         mp.shutdown()
     logging.getLogger().handlers.clear()
 
