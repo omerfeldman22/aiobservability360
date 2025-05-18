@@ -15,7 +15,7 @@ resource "docker_image" "chess_black_agent" {
   }
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.chess_directory_path}/*") : filesha1(f)]))
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.chess_directory_path}/**") : filesha1(f)]))
   }
 }
 
@@ -24,7 +24,7 @@ resource "docker_registry_image" "chess_black_agent" {
   keep_remotely = true
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.chess_directory_path}/*") : filesha1(f)]))
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.chess_directory_path}/**") : filesha1(f)]))
   }
 }
 
