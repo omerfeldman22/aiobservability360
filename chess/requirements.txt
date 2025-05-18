@@ -15,3 +15,6 @@ opentelemetry-proto==1.33.1
 opentelemetry-sdk==1.33.1
 opentelemetry-semantic-conventions==0.54b1
 opentelemetry-util-http==0.54b1
+opentelemetry-instrumentation-httpx==0.54b1
+opentelemetry-instrumentation-openai==0.40.6
+opentelemetry-instrumentation-requests==0.54b1
