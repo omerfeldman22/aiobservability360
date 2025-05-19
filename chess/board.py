@@ -23,15 +23,6 @@ from otel.otel import configure_telemetry, trace_span
 from dotenv import load_dotenv
 
 load_dotenv()
-"""
-# configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="[Board] %(asctime)s %(levelname)s: %(message)s",
-    datefmt="%H:%M:%S"
-)
-log = logging.getLogger("board")
-"""
 
 SERVICE_VERSION = "1.0.1"
 
