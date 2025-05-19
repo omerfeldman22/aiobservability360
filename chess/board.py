@@ -35,6 +35,11 @@ log = instruments["logger"]
 WHITE_URL = os.getenv("WHITE_URL", "http://localhost:8001")
 BLACK_URL = os.getenv("BLACK_URL", "http://localhost:8002")
 
+# Constants
+AZURE_OPENAI_MODEL = "gpt-4o-mini" # ["gpt-4o", "gpt-4o-mini", "o4-mini", "gpt-4.1-mini", "o3-mini"]
+AZURE_OPENAI_DEPLOYMENT = "aiobs360-gpt-4o-mini" # ["${var.base_name}-gpt-4o", "${var.base_name}-gpt-4o-mini", "${var.base_name}-o4-mini", "${var.base_name}-gpt-4.1-mini", "${var.base_name}-o3-mini"]
+AZURE_OPENAI_API_VERSION = "2025-01-01-preview" # ["2025-01-01-preview"]
+
 @trace_span("Start the game...", tracer)
 async def run() -> None:
     
@@ -56,8 +61,17 @@ async def run() -> None:
         other_wb, other_name     = wb_black, "black"
         max_invalid = 50
         invalid_count = 0
-
         while not board.is_game_over():
+            # Todo: recreate the client only when exception occurs
+            if current_name == "white":
+                current_wb = McpWorkbench(
+                    SseServerParams(url=f"{WHITE_URL}/sse", timeout=90)
+                )
+            else:
+                current_wb = McpWorkbench(
+                    SseServerParams(url=f"{BLACK_URL}/sse", timeout=90)
+                )
+
             fen = board.fen()
             log.info(f"Requesting {current_name} move. FEN={fen}")
 
@@ -65,7 +79,15 @@ async def run() -> None:
                 span.set_attribute("fen", fen)
                 span.set_attribute("current_player", current_name)
                 # call the remote move tool
-                result = await current_wb.call_tool("move", {"fen": fen})
+                # add model + version to the call_tool
+                result = await current_wb.call_tool("move", {
+                        "fen": fen, 
+                        "azure_openai_model": AZURE_OPENAI_MODEL,
+                        "azure_openai_deployment": AZURE_OPENAI_DEPLOYMENT,
+                        "azure_openai_api_version": AZURE_OPENAI_API_VERSION
+                    }
+                )
+                
                 # parse SSE chunked response
                 content = result.result[0].content
                 log.info(f"Current move is : {content}")
@@ -127,12 +149,6 @@ async def run() -> None:
               "Threefold repetition" if board.can_claim_threefold_repetition() else
               "Unknown")
     log.info(f"Game over: {result} - {reason}")
-
-    # export PGN
-    game = chess.pgn.Game.from_board(board)
-    with open("game_record.pgn", "w") as f:
-        f.write(str(game))
-    log.info("Game saved to game_record.pgn")
 
     display.terminate()
     await asyncio.sleep(2)
