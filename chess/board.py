@@ -89,10 +89,14 @@ async def run() -> None:
                 span.set_attribute("current_player", current_name)
                 # call the remote move tool
                 # add model + version to the call_tool
-                result = await current_wb.call_tool("move", {"fen": fen, 
-                                                             "azure_openai_model": "gpt-4o-mini",
-                                                             "azure_openai_deployment": "aiobs360-gpt-4o-mini",
-                                                             "azure_openai_api_version": "2025-01-01-preview"})
+                result = await current_wb.call_tool("move", {
+                        "fen": fen, 
+                        "azure_openai_model": AZURE_OPENAI_MODEL,
+                        "azure_openai_deployment": AZURE_OPENAI_DEPLOYMENT,
+                        "azure_openai_api_version": AZURE_OPENAI_API_VERSION
+                    }
+                )
+                
                 # parse SSE chunked response
                 content = result.result[0].content
                 log.info(f"Current move is : {content}")
