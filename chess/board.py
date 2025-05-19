@@ -65,8 +65,17 @@ async def run() -> None:
         other_wb, other_name     = wb_black, "black"
         max_invalid = 50
         invalid_count = 0
-
         while not board.is_game_over():
+            # Todo: recreate the client only when exception occurs
+            if current_name == "white":
+                current_wb = McpWorkbench(
+                    SseServerParams(url=f"{WHITE_URL}/sse", timeout=90)
+                )
+            else:
+                current_wb = McpWorkbench(
+                    SseServerParams(url=f"{BLACK_URL}/sse", timeout=90)
+                )
+
             fen = board.fen()
             log.info(f"Requesting {current_name} move. FEN={fen}")
 
@@ -74,6 +83,7 @@ async def run() -> None:
                 span.set_attribute("fen", fen)
                 span.set_attribute("current_player", current_name)
                 # call the remote move tool
+                # add model + version to the call_tool
                 result = await current_wb.call_tool("move", {"fen": fen})
                 # parse SSE chunked response
                 content = result.result[0].content
@@ -138,6 +148,7 @@ async def run() -> None:
     log.info(f"Game over: {result} - {reason}")
 
     # export PGN
+    # TODO: remove
     game = chess.pgn.Game.from_board(board)
     with open("game_record.pgn", "w") as f:
         f.write(str(game))
