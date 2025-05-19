@@ -6,18 +6,46 @@ resource "azurerm_cognitive_account" "demo" {
   sku_name            = "S0"
 }
 
+
+locals {
+  models = {
+    "gpt-4o" = {
+      name     = "gpt-4o"
+      version  = "2024-11-20"
+      capacity = 450
+    },
+    "o4-mini" = {
+      name     = "o4-mini"
+      version  = "2025-04-16"
+      capacity = 1000
+    },
+    "gpt-4.1-mini" = {
+      name     = "gpt-4.1-mini"
+      version  = "2025-04-14"
+      capacity = 1000
+    },
+    "o3-mini" = {
+      name     = "o3-mini"
+      version  = "2025-01-31"
+      capacity = 500
+    },
+  }
+}
+
 resource "azurerm_cognitive_deployment" "demo" {
-  name                 = "${var.base_name}-gpt-4o"
+  for_each = local.models
+
+  name                 = "${var.base_name}-${each.key}"
   cognitive_account_id = azurerm_cognitive_account.demo.id
 
   model {
     format  = "OpenAI"
-    name    = var.openai_model
-    version = var.openai_model_version
+    name    = each.value.name
+    version = each.value.version
   }
 
   sku {
     name     = "GlobalStandard"
-    capacity = 450
+    capacity = each.value.capacity
   }
 }
