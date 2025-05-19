@@ -14,6 +14,11 @@ locals {
       version  = "2024-11-20"
       capacity = 450
     },
+    "gpt-4o-mini" = {
+      name     = "gpt-4o-mini"
+      version  = "2024-07-18"
+      capacity = 200
+    },
     "o4-mini" = {
       name     = "o4-mini"
       version  = "2025-04-16"
