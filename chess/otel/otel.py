@@ -52,7 +52,7 @@ def configure_telemetry(service_name: str, service_version: str, deployment_env:
     # Initialize tracing
     trace_provider = TracerProvider(resource=resource)
     trace_provider.add_span_processor(
-        BatchSpanProcessor(OTLPSpanExporter())
+        BatchSpanProcessor(OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_URL", "localhost:4317"), insecure=True))    
     )
     trace.set_tracer_provider(trace_provider)
 
@@ -60,7 +60,7 @@ def configure_telemetry(service_name: str, service_version: str, deployment_env:
     meter_provider = MeterProvider(
         resource=resource,
         metric_readers=[
-            PeriodicExportingMetricReader(OTLPMetricExporter())
+            PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=os.getenv("OTEL_EXPORTER_URL", "localhost:4317"), insecure=True))
         ]
     )
     metrics.set_meter_provider(meter_provider)
@@ -69,7 +69,7 @@ def configure_telemetry(service_name: str, service_version: str, deployment_env:
     logger_provider = LoggerProvider(resource=resource)
     set_logger_provider(logger_provider)
 
-    log_exporter = OTLPLogExporter(insecure=True)
+    log_exporter = OTLPLogExporter(endpoint=os.getenv("OTEL_EXPORTER_URL", "localhost:4317"), insecure=True)
     log_processor = BatchLogRecordProcessor(log_exporter)
     logger_provider.add_log_record_processor(log_processor)
 
