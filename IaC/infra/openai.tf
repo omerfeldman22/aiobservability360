@@ -6,6 +6,32 @@ resource "azurerm_cognitive_account" "demo" {
   sku_name            = "S0"
 }
 
+data "azurerm_monitor_diagnostic_categories" "openai" {
+  resource_id = azurerm_cognitive_account.demo.id
+}
+
+resource "azurerm_monitor_diagnostic_setting" "openai" {
+  name                       = "openai-diagnostics"
+  target_resource_id         = azurerm_cognitive_account.demo.id
+  
+  eventhub_name                  = azurerm_eventhub.diagnostic.name
+  eventhub_authorization_rule_id = azurerm_eventhub_namespace_authorization_rule.monitor.id
+
+  dynamic "enabled_log" {
+    for_each = data.azurerm_monitor_diagnostic_categories.openai.log_category_types
+    content {
+      category = enabled_log.value
+    }
+  }
+
+  dynamic "metric" {
+    for_each = data.azurerm_monitor_diagnostic_categories.openai.metrics
+    content {
+      category = metric.value
+      enabled  = true
+    }
+  }
+}
 
 locals {
   models = {
