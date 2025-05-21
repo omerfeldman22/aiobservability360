@@ -76,6 +76,11 @@ resource "kubernetes_deployment" "chess_black_agent" {
           }
 
           env {
+            name  = "TRACELOOP_BASE_URL"
+            value = "http://${kubernetes_service.otel_collector.metadata[0].name}.${kubernetes_namespace.opentelemtry.metadata[0].name}.svc.cluster.local:4318"
+          }
+          
+          env {
             name  = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
             value = "true"
           }
