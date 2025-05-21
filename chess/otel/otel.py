@@ -29,7 +29,7 @@ _telemetry_configured_resources = {}
 def configure_telemetry(service_name: str, service_version: str, deployment_env: str = "demo"):
     
     global _telemetry_configured_resources
-    
+
     if service_name in _telemetry_configured_resources:
         # Return existing instruments if already configured
         return _telemetry_configured_resources[service_name]
