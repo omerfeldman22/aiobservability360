@@ -30,23 +30,27 @@ mcp = FastMCP(name="White Chess Agent",
               describe_full_response_schema=True)  # Include full JSON schema in descriptions)
 
 def initiate_ai_agent(azure_openai_model: str, azure_openai_deployment: str, azure_openai_api_version: str):
-    client = AzureOpenAIChatCompletionClient(
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        azure_deployment=azure_openai_deployment,
-        model=azure_openai_model,
-        api_version=azure_openai_api_version        
-    )
+    with tracer.start_as_current_span("init_agent") as span:
+        
+        span.set_attribute("azure_endpoint", os.getenv("AZURE_OPENAI_ENDPOINT"))
+        
+        client = AzureOpenAIChatCompletionClient(
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            azure_deployment=azure_openai_deployment,
+            model=azure_openai_model,
+            api_version=azure_openai_api_version        
+        )
    
-    agent = AssistantAgent(
-        name="white_player",
-        model_client=client,
-        description="""You are a chess player, playing with WHITE pieces.
+        agent = AssistantAgent(
+            name="white_player",
+            model_client=client,
+            description="""You are a chess player, playing with WHITE pieces.
                         Before you decide about a next move, you must analyze the current 
                         board state and provide a legal best move in UCI notation. 
                         Provide LEGAL MOVES in UCI notation only.
                         Double check and reason about the selected move before sending it. 
                         Your goal is to win the game.""",
-        system_message="""You are world renowned chess grandmaster. You play WHITE. 
+            system_message="""You are world renowned chess grandmaster. You play WHITE. 
             Respond only with one legal UCI move (e.g. e2e4) for the given FEN. 
             You must output exactly ONE move in Universal Chess Interface (UCI) format:
                 • four characters like e2e4, or
@@ -61,7 +65,8 @@ def initiate_ai_agent(azure_openai_model: str, azure_openai_deployment: str, azu
                 Reduces illegal “through-piece” moves.
                 Eliminates illegal backward-pawn or straight captures.
                 Your move must remove any check to your own king. If not, try again.
-    """)
+                Reason your move choice.
+        """)
 
     return agent
 
@@ -72,51 +77,63 @@ def initiate_ai_agent(azure_openai_model: str, azure_openai_deployment: str, azu
 async def move_tool(fen: str, azure_openai_model: str, azure_openai_deployment: str, azure_openai_api_version: str):
     """Return one legal white move (UCI)."""
     log.info("[WhiteAgent] Received FEN %s", fen)
-
-    agent = initiate_ai_agent(azure_openai_model, azure_openai_deployment, azure_openai_api_version)
-
-    # 1 ─ Build a fresh board from the FEN
-    try:
-        board = chess.Board(fen)
-    except ValueError as e:
-        log.error("[WhiteAgent] Invalid FEN: %s", e)
-        return {"error": f"Invalid FEN: {e}"}
-
-    if not board.turn:  # False → Black to move
-        log.error("[WhiteAgent] It's not white's turn.")
-        return {"error": "It's not white's turn in this position"}
-
-    # 2 ─ Enumerate all legal moves
-    legal_uci = [m.uci() for m in board.legal_moves]
-    if not legal_uci:  # mate / stalemate
-        log.error("[WhiteAgent] No legal moves available. Mate or stalemate. Game over.")
-        return {"error": "no legal moves"}
-
-    with tracer.start_as_current_span("move_white_span") as span:
-        #add attributes to span
-        span.set_attribute("fen", fen)
     
-        prompt = (
-            f"You are WHITE. FEN: {fen}\n"
-            "Choose ONE BEST move from this list and output it **exactly**:\n"
-            + ", ".join(legal_uci)
-        )
+    with tracer.start_as_current_span("make_move") as span:
+        span.set_attribute("current_player", "white")
+        span.set_attribute("azure_openai_model", azure_openai_model)
+        span.set_attribute("azure_openai_deployment", azure_openai_deployment)
+        span.set_attribute("azure_openai_api_version", azure_openai_api_version)
+        span.set_attribute("FEN", fen)
+        
+        agent = initiate_ai_agent(azure_openai_model, azure_openai_deployment, azure_openai_api_version)
 
-        # 3 ─ Up to MAX_NUMBER_OF_RETRIES attempts to get a legal reply
-        for _ in range(MAX_NUMBER_OF_RETRIES):
-            resp = await agent.run(task=prompt)
-            uci = resp.messages[-1].content.strip().split()[0].lower()
+        # 1 ─ Build a fresh board from the FEN
+        try:
+            board = chess.Board(fen)
+        except ValueError as e:
+            log.error("[WhiteAgent] Invalid FEN: %s", e)
+            return {"error": f"Invalid FEN: {e}"}
 
-            if uci in legal_uci:
-                log.info("[WhiteAgent] Accepted move %s", uci)
-                span.set_attribute(f"Accepted move: {uci}", uci)
-                return {"uci": uci}
+        if not board.turn:  # False → Black to move
+            log.error("[WhiteAgent] It's not white's turn.")
+            return {"error": "It's not white's turn in this position"}
+        
+        
+        with tracer.start_as_current_span("list_legal_moves") as span:
+            # 2 ─ Enumerate all legal moves
+            legal_uci = [m.uci() for m in board.legal_moves]
+            if not legal_uci:  # mate / stalemate
+                log.error("[WhiteAgent] No legal moves available. Mate or stalemate. Game over.")
+                return {"error": "no legal moves"}
+            span.set_attribute("legal_moves:", legal_uci)
 
-            # feedback lfor retry
+        with tracer.start_as_current_span("run_agent_for_next_move") as span:
+            
             prompt = (
-                f"That move:{uci} is illegal or not in the valid moves list.\n"
-                "Pick ONE move from: " + ", ".join(legal_uci)
+            f"You are playing with WHITE pieces. Current is FEN: {fen}\n"
+            "Choose ONE BEST move from this list and output it. Reason your choice.\n"
+            + ", ".join(legal_uci)
             )
+            span.set_attribute("prompt", prompt)
+        
+            # 3 ─ Up to MAX_NUMBER_OF_RETRIES attempts to get a legal reply
+            for _ in range(MAX_NUMBER_OF_RETRIES):
+                resp = await agent.run(task=prompt)
+                uci = resp.messages[-1].content.strip().split()[0].lower()
+                span.set_attribute("response:", resp.messages[-1].content)
+                span.set_attribute("uci:", uci)
+
+                if uci in legal_uci:
+                    log.info("[WhiteAgent] Accepted move %s", uci)
+                    span.set_attribute(f"Accepted move: {uci}", uci)
+                    return {"uci": uci}
+
+                # feedback for retry
+                prompt = (
+                    f"That move:{uci} is illegal or not in the valid moves list.\n"
+                    "Pick ONE move from: " + ", ".join(legal_uci)
+                )
+                span.set_attribute("feedback for retry", prompt)
 
         # 4 ─ Give up after MAX_NUMBER_OF_RETRIES bad tries
         log.error("[WhiteAgent] Too many illegal replies.")
