@@ -17,7 +17,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.54b1",
     "opentelemetry-instrumentation-httpx>=0.54b1",
     "opentelemetry-instrumentation-logging>=0.54b1",
-    "opentelemetry-instrumentation-openai>=0.40.6",
+    "opentelemetry-instrumentation-openai>=0.40.7",
     "opentelemetry-instrumentation-requests>=0.54b1",
-    "opentelemetry-sdk>=1.33.1",
+    "opentelemetry-sdk>=1.33.1"
 ]
