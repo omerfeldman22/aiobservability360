@@ -14,9 +14,7 @@ Run from the root of the repository: python -m mcp_sse.board
 import asyncio
 import json
 import os
-import logging
 import chess
-import chess.pgn
 from chessboard import display
 from autogen_ext.tools.mcp import McpWorkbench, SseServerParams
 from otel.otel import configure_telemetry, trace_span
@@ -37,10 +35,9 @@ BLACK_URL = os.getenv("BLACK_URL", "http://localhost:8002")
 
 # Constants
 AZURE_OPENAI_MODEL = "gpt-4o-mini" # ["gpt-4o", "gpt-4o-mini", "o4-mini", "gpt-4.1-mini", "o3-mini"]
-AZURE_OPENAI_DEPLOYMENT = "aiobs360-gpt-4o-mini" # ["${var.base_name}-gpt-4o", "${var.base_name}-gpt-4o-mini", "${var.base_name}-o4-mini", "${var.base_name}-gpt-4.1-mini", "${var.base_name}-o3-mini"]
+AZURE_OPENAI_DEPLOYMENT = "agentsobs360-gpt-4o-mini" # ["${var.base_name}-gpt-4o", "${var.base_name}-gpt-4o-mini", "${var.base_name}-o4-mini", "${var.base_name}-gpt-4.1-mini", "${var.base_name}-o3-mini"]
 AZURE_OPENAI_API_VERSION = "2025-01-01-preview" # ["2025-01-01-preview"]
 
-@trace_span("Start the game...", tracer)
 async def run() -> None:
     
     board = chess.Board()
@@ -61,6 +58,7 @@ async def run() -> None:
         other_wb, other_name     = wb_black, "black"
         max_invalid = 50
         invalid_count = 0
+        
         while not board.is_game_over():
             # Todo: recreate the client only when exception occurs
             if current_name == "white":
@@ -75,7 +73,7 @@ async def run() -> None:
             fen = board.fen()
             log.info(f"Requesting {current_name} move. FEN={fen}")
 
-            with tracer.start_as_current_span("move_span") as span:
+            with tracer.start_as_current_span("ask_next_move") as span:
                 span.set_attribute("fen", fen)
                 span.set_attribute("current_player", current_name)
                 # call the remote move tool
@@ -88,70 +86,72 @@ async def run() -> None:
                     }
                 )
                 
-                # parse SSE chunked response
-                content = result.result[0].content
-                log.info(f"Current move is : {content}")
-                if not content or 'uci' not in content:
-                    invalid_count += 1
-                    log.warning(f"{current_name} agent error ({invalid_count}/{max_invalid}): {content}")
-                    if invalid_count <= max_invalid:
-                        await asyncio.sleep(1)
-                        continue
-                    else:
+                with tracer.start_as_current_span("validate_move") as span:
+                    # parse SSE chunked response
+                    content = result.result[0].content
+                    log.info(f"Current move is : {content}")
+                    if not content or 'uci' not in content:
+                        invalid_count += 1
+                        log.warning(f"{current_name} agent error ({invalid_count}/{max_invalid}): {content}")
+                        if invalid_count <= max_invalid:
+                            await asyncio.sleep(1)
+                            continue
                         log.error("1.Too many invalid moves; aborting game.")
                         break
-                invalid_count = 0
-                
-                try:
+                    invalid_count = 0
+                    
                     payload = json.loads(content)
-                except json.JSONDecodeError:
-                    log.error(f"Fatal Error: Invalid JSON from {current_name}: {content}")
-                    break
-
-                if not payload or 'uci' not in payload:
-                    invalid_count += 1
-                    log.warning(f"{current_name} agent error ({invalid_count}/{max_invalid}): {payload}")
-                    if invalid_count >= max_invalid:
-                        log.error("2.Too many invalid moves; aborting game.")
-                        break
-                    continue
+                    
+                    if not payload or 'uci' not in payload:
+                        invalid_count += 1
+                        log.warning(f"{current_name} agent error ({invalid_count}/{max_invalid}): {payload}")
+                        if invalid_count >= max_invalid:
+                            log.error("2.Too many invalid moves; aborting game.")
+                            break
+                        continue
             
-                invalid_count = 0
-                uci = payload['uci']
-                log.info(f"Received UCI from {current_name}: {uci}")
-                span.set_attribute("uci", uci)
+                    invalid_count = 0
+                    uci = payload['uci']
+                    log.info(f"Received UCI from {current_name}: {uci}")
+                    span.set_attribute("uci:", uci)
+                    span.set_attribute("player:", current_name)
 
-            # validate move
-            try:
-                mv = chess.Move.from_uci(uci)
-                if mv not in board.legal_moves:
-                    raise ValueError("illegal move")
-            except Exception as e:
-                log.error(f"Illegal move from {current_name}: {uci} ({e})")
-                break
+                with tracer.start_as_current_span("update_board") as span:
+                    # validate move
+                    try:
+                        mv = chess.Move.from_uci(uci)
+                        if mv not in board.legal_moves:
+                            raise ValueError("illegal move")
+                    except Exception as e:
+                        log.error(f"Illegal move from {current_name}: {uci} ({e})")
+                        break
 
-            # apply and render
-            board.push(mv)
-            display.update(board.fen(), game_board)
-            log.info(f"Applied move {uci}")
+                    # apply and render
+                    board.push(mv)
+                    display.update(board.fen(), game_board)
+                    log.info(f"Applied move {uci}")
            
             # swap turns
             current_wb, other_wb       = other_wb, current_wb
             current_name, other_name   = other_name, current_name
             await asyncio.sleep(2)
 
-    # game over summary
-    result = board.result()
-    reason = ("Checkmate" if board.is_checkmate() else
-              "Stalemate" if board.is_stalemate() else
-              "Insufficient material" if board.is_insufficient_material() else
-              "Fifty-move rule" if board.can_claim_fifty_moves() else
-              "Threefold repetition" if board.can_claim_threefold_repetition() else
-              "Unknown")
-    log.info(f"Game over: {result} - {reason}")
-
-    display.terminate()
-    await asyncio.sleep(2)
+        # game over summary
+        with tracer.start_as_current_span("game_summary") as span:
+            result = board.result()
+            reason = ("Checkmate" if board.is_checkmate() else
+                    "Stalemate" if board.is_stalemate() else
+                    "Insufficient material" if board.is_insufficient_material() else
+                    "Fifty-move rule" if board.can_claim_fifty_moves() else
+                    "Threefold repetition" if board.can_claim_threefold_repetition() else
+                    "Unknown")
+            span.set_attribute("result", result)
+            span.set_attribute("reason", reason)
+            log.info(f"Game over: {result} - {reason}")
+         
+        with tracer.start_as_current_span("terminate_game") as span: 
+            display.terminate()
+                #await asyncio.sleep(2)
 
 if __name__ == "__main__":
     # URLs may include /sse or root depending on agent setup
