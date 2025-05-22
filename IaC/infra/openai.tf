@@ -55,6 +55,11 @@ locals {
       version  = "2025-04-14"
       capacity = 1000
     },
+    "gpt-4.1" = {
+      name     = "gpt-4.1"
+      version  = "2025-04-14"
+      capacity = 1000
+    },
     "o3-mini" = {
       name     = "o3-mini"
       version  = "2025-01-31"
