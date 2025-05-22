@@ -35,7 +35,7 @@ BLACK_URL = os.getenv("BLACK_URL", "http://localhost:8002")
 
 # Constants
 AZURE_OPENAI_MODEL = "gpt-4o-mini" # ["gpt-4o", "gpt-4o-mini", "o4-mini", "gpt-4.1-mini", "o3-mini"]
-AZURE_OPENAI_DEPLOYMENT = "agentsobs360-gpt-4o-mini" # ["${var.base_name}-gpt-4o", "${var.base_name}-gpt-4o-mini", "${var.base_name}-o4-mini", "${var.base_name}-gpt-4.1-mini", "${var.base_name}-o3-mini"]
+AZURE_OPENAI_DEPLOYMENT = "aiobs360-gpt-4o-mini" # ["${var.base_name}-gpt-4o", "${var.base_name}-gpt-4o-mini", "${var.base_name}-o4-mini", "${var.base_name}-gpt-4.1-mini", "${var.base_name}-o3-mini"]
 AZURE_OPENAI_API_VERSION = "2025-01-01-preview" # ["2025-01-01-preview"]
 
 async def run() -> None:

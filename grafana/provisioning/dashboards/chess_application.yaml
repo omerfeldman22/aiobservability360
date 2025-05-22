@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: 'Chess Application Dashboards'
+    orgId: 1
+    folder: 'chess_application'
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/chess_application
