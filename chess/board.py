@@ -17,7 +17,7 @@ import os
 import chess
 from chessboard import display
 from autogen_ext.tools.mcp import McpWorkbench, SseServerParams
-from otel.otel import configure_telemetry, trace_span
+from otel.otel import configure_telemetry
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -45,31 +45,23 @@ async def run() -> None:
     # initialize UI with the starting FEN
     game_board = display.start(board.fen())
 
-    # configure SSE workbenches
-    wb_white = McpWorkbench(
-        SseServerParams(url=f"{WHITE_URL}/sse", timeout=90)
-    )
-    wb_black = McpWorkbench(
-        SseServerParams(url=f"{BLACK_URL}/sse", timeout=90)
-    )
-
-    async with wb_white, wb_black:
-        current_wb, current_name = wb_white, "white"
-        other_wb, other_name     = wb_black, "black"
-        max_invalid = 50
-        invalid_count = 0
+    current_name = "white"
+    other_name = "black"
+    max_invalid = 50
+    invalid_count = 0
         
-        while not board.is_game_over():
-            # Todo: recreate the client only when exception occurs
-            if current_name == "white":
-                current_wb = McpWorkbench(
-                    SseServerParams(url=f"{WHITE_URL}/sse", timeout=90)
-                )
-            else:
-                current_wb = McpWorkbench(
-                    SseServerParams(url=f"{BLACK_URL}/sse", timeout=90)
-                )
-
+    while not board.is_game_over():
+        
+        # Todo: recreate the client only when exception occurs
+        if current_name == "white":
+            current_wb = McpWorkbench(
+                SseServerParams(url=f"{WHITE_URL}/sse", timeout=90)
+            )
+        else:
+            current_wb = McpWorkbench(
+                SseServerParams(url=f"{BLACK_URL}/sse", timeout=90)
+            )
+        async with current_wb:
             fen = board.fen()
             log.info(f"Requesting {current_name} move. FEN={fen}")
 
@@ -86,7 +78,7 @@ async def run() -> None:
                     }
                 )
                 
-                with tracer.start_as_current_span("validate_move") as span:
+                with tracer.start_as_current_span("validate_current_move") as span:
                     # parse SSE chunked response
                     content = result.result[0].content
                     log.info(f"Current move is : {content}")
@@ -131,29 +123,29 @@ async def run() -> None:
                     display.update(board.fen(), game_board)
                     log.info(f"Applied move {uci}")
            
-            # swap turns
-            current_wb, other_wb       = other_wb, current_wb
-            current_name, other_name   = other_name, current_name
-            await asyncio.sleep(2)
+                # swap turns
+                current_name, other_name = other_name, current_name
+            
+                await asyncio.sleep(2)
 
         # game over summary
-        with tracer.start_as_current_span("game_summary") as span:
-            result = board.result()
-            reason = ("Checkmate" if board.is_checkmate() else
+    with tracer.start_as_current_span("game_summary") as span:
+        result = board.result()
+        reason = ("Checkmate" if board.is_checkmate() else
                     "Stalemate" if board.is_stalemate() else
                     "Insufficient material" if board.is_insufficient_material() else
                     "Fifty-move rule" if board.can_claim_fifty_moves() else
                     "Threefold repetition" if board.can_claim_threefold_repetition() else
                     "Unknown")
-            span.set_attribute("result", result)
-            span.set_attribute("reason", reason)
-            log.info(f"Game over: {result} - {reason}")
+        span.set_attribute("result", result)
+        span.set_attribute("reason", reason)
+        log.info(f"Game over: {result} - {reason}")
          
-        with tracer.start_as_current_span("terminate_game") as span: 
-            display.terminate()
-                #await asyncio.sleep(2)
+    with tracer.start_as_current_span("terminate_game") as span:
+        asyncio.sleep(300) 
+        display.terminate()
 
 if __name__ == "__main__":
     # URLs may include /sse or root depending on agent setup
-    log.info("Starting Board Orchestrator (SSE)!")
+    log.info("Starting Board Plain Orchestrator (SSE)!")
     asyncio.run(run())
