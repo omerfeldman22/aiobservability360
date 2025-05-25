@@ -18,3 +18,4 @@ opentelemetry-util-http==0.54b1
 opentelemetry-instrumentation-httpx==0.54b1
 opentelemetry-instrumentation-openai==0.40.6
 opentelemetry-instrumentation-requests==0.54b1
+opentelemetry-instrumentation-mcp==-0.40.7

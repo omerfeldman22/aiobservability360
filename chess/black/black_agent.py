@@ -26,6 +26,7 @@ MAX_NUMBER_OF_RETRIES = 5
 mcp = FastMCP(name="Black Pieces Chess Agent",
               description="Black pieces chess agent using SSE transport",
               base_url="http://localhost:8000",
+              host="0.0.0.0",
               describe_all_responses=True,  # Include all possible response schemas
               describe_full_response_schema=True)  # Include full JSON schema in descriptions)
 
