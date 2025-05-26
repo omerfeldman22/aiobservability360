@@ -1,0 +1,89 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: evaluation_group_latency
+      folder: openai_service
+      interval: 1m
+      rules:
+        - uid: ben1pauhllzi8b
+          title: OpenAI Latency
+          condition: B
+          data:
+            - refId: A
+              queryType: KQL
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: OBS360DataSource
+              model:
+                OpenAI: false
+                database: openteldb
+                datasource:
+                    type: grafana-azure-data-explorer-datasource
+                    uid: OBS360DataSource
+                expression:
+                    groupBy:
+                        expressions: []
+                        type: and
+                    reduce:
+                        expressions: []
+                        type: and
+                    where:
+                        expressions: []
+                        type: and
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                pluginVersion: 6.0.1
+                query: |-
+                    DiagnosticMetrics
+                    | where ResourceId contains 'MICROSOFT.COGNITIVESERVICES'
+                    | where MetricName == 'Latency'
+                    | where $__timeFilter(Timestamp)
+                    | order by Timestamp desc
+                    | project-away Count, Total, Minimum, Maximum
+                    | project Average
+                    | sort by Average
+                    | take 1
+                querySource: raw
+                queryType: KQL
+                rawMode: true
+                refId: A
+                resultFormat: table
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 2000
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                      unloadEvaluator:
+                        params:
+                            - 2000
+                        type: lt
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 3m
+          annotations:
+            summary: OpenAI Has encountered latency
+          isPaused: false
+          notification_settings:
+            receiver: Contact Email Point

@@ -1,0 +1,95 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: evaluation_group
+      folder: chess_application
+      interval: 1m
+      rules:
+        - uid: 1
+          title: Total Errors Count
+          condition: B
+          for: 5m
+          data:
+            - refId: A
+              queryType: KQL
+              relativeTimeRange:
+                from: 1800
+                to: 0
+              datasourceUid: OBS360DataSource
+              model:
+                OpenAI: false
+                clusterUri: ""
+                database: openteldb
+                datasource:
+                    type: grafana-azure-data-explorer-datasource
+                    uid: OBS360DataSource
+                expression:
+                    groupBy:
+                        expressions: []
+                        type: and
+                    reduce:
+                        expressions: []
+                        type: and
+                    where:
+                        expressions: []
+                        type: and
+                intervalMs: 1000
+                maxDataPoints: 43200
+                pluginVersion: 5.1.1
+                query: |-
+                    OTELLogs
+                    | where $__timeFilter(Timestamp)
+                    | where SeverityText == 'ERROR'
+                    | where ResourceAttributes != "{}"
+                    | order by Timestamp desc
+                    | extend CodeFilePath = tostring(LogsAttributes.['code.file.path'])
+                    | extend CodeFunction = tostring(LogsAttributes.['code.function.name'])
+                    | extend CodeLineNumber = tostring(LogsAttributes.['code.line.number'])
+                    | project Timestamp, TraceID, SpanID, Body, CodeFilePath, CodeFunction, CodeLineNumber
+                    | count
+                querySource: raw
+                queryType: KQL
+                rawMode: true
+                refId: A
+                resultFormat: table
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                      unloadEvaluator:
+                        params:
+                            - 0
+                        type: lt
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: threshold
+          dashboardUid: 10
+          panelId: 4
+          noDataState: NoData
+          execErrState: Error
+          annotations:
+            __dashboardUid__: 10
+            __panelId__: "4"
+            description: Chess Application Total Errors Count is above 0
+            summary: Chess Application has encountered an error(s), Please pay attention
+          isPaused: false
+          notification_settings:
+            receiver: Contact Email Point
