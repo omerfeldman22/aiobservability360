@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 10,
+  "id": 11,
   "links": [],
   "panels": [
     {
@@ -627,7 +627,7 @@
             }
           },
           "pluginVersion": "6.0.1",
-          "query": "OTELLogs\n| where $__timeFilter(Timestamp)\n| where SeverityText != ''\n| where Body contains 'Game Over'\n| summarize count() by Body",
+          "query": "OTELLogs\n| where $__timeFilter(Timestamp)\n| where SeverityText != ''\n| where Body contains 'Game Over'\n| extend Outcome = case(\n  Body has \"0-1\", \"0-1\",\n  Body has \"1-0\", \"1-0\",\n  Body has \"1/2-1/2\", \"1/2-1/2\",\n  Body has \"Unknown\", \"Unknown\",\n  \"Other\"\n)\n| summarize count() by Outcome\n",
           "querySource": "raw",
           "queryType": "KQL",
           "rawMode": true,
@@ -644,22 +644,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "Game over: 1/2-1/2 - Threefold repetition",
+            "regex": "(.*1/2-1/2.*)",
             "renamePattern": "Tie"
           }
         },
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "Game over: 0-1 - Checkmate",
+            "regex": "(.*0-1.*)",
             "renamePattern": "Black"
           }
         },
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "Game over: 1-0 - Checkmate",
+            "regex": "(.*1-0.*)",
             "renamePattern": "White"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "(.*Unknown.*)",
+            "renamePattern": "Unknown"
           }
         }
       ],
@@ -845,6 +852,163 @@
         "x": 0,
         "y": 40
       },
+      "id": 25,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<h1 style=\"text-align: center; color: black;background-color:white\">MCP</h1>",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.4.0",
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-data-explorer-datasource",
+        "uid": "OBS360DataSource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [
+            {
+              "options": {
+                "Game over: 1/2-1/2 - Threefold repetition": {
+                  "index": 0,
+                  "text": "Tie"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "unit": "sishort"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "id": 26,
+      "options": {
+        "displayLabels": [
+          "value"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "OpenAI": false,
+          "database": "openteldb",
+          "datasource": {
+            "type": "grafana-azure-data-explorer-datasource",
+            "uid": "OBS360DataSource"
+          },
+          "expression": {
+            "groupBy": {
+              "expressions": [],
+              "type": "and"
+            },
+            "reduce": {
+              "expressions": [],
+              "type": "and"
+            },
+            "where": {
+              "expressions": [],
+              "type": "and"
+            }
+          },
+          "pluginVersion": "6.0.1",
+          "query": "OTELTraces\n| where TraceAttributes contains \"gen_ai.completion.0.tool_calls.0.name\"\n| extend ToolName = tostring(parse_json(TraceAttributes)['gen_ai.completion.0.tool_calls.0.name'])\n| project ToolName\n| summarize count()by ToolName",
+          "querySource": "raw",
+          "queryType": "KQL",
+          "rawMode": true,
+          "refId": "A",
+          "resultFormat": "table"
+        }
+      ],
+      "title": "MCP Tools Actions",
+      "transformations": [
+        {
+          "id": "transpose",
+          "options": {}
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Game over: 1/2-1/2 *",
+            "renamePattern": "Tie"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Game over: 0-1 *",
+            "renamePattern": "Black"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Game over: 1-0 *",
+            "renamePattern": "White"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "Game over: \\* - Unknown",
+            "renamePattern": "Unknown"
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "piechart"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
       "id": 6,
       "options": {
         "code": {
@@ -896,7 +1060,7 @@
         "h": 7,
         "w": 6,
         "x": 0,
-        "y": 42
+        "y": 54
       },
       "id": 7,
       "options": {
@@ -988,7 +1152,7 @@
         "h": 7,
         "w": 6,
         "x": 6,
-        "y": 42
+        "y": 54
       },
       "id": 8,
       "options": {
@@ -1080,7 +1244,7 @@
         "h": 7,
         "w": 6,
         "x": 12,
-        "y": 42
+        "y": 54
       },
       "id": 9,
       "options": {
@@ -1172,7 +1336,7 @@
         "h": 7,
         "w": 6,
         "x": 18,
-        "y": 42
+        "y": 54
       },
       "id": 10,
       "options": {
@@ -1237,7 +1401,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 61
       },
       "id": 12,
       "options": {
@@ -1281,7 +1445,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 51
+        "y": 63
       },
       "id": 18,
       "options": {
@@ -1364,7 +1528,7 @@
         "h": 6,
         "w": 8,
         "x": 8,
-        "y": 51
+        "y": 63
       },
       "id": 20,
       "options": {
@@ -1447,7 +1611,7 @@
         "h": 6,
         "w": 8,
         "x": 16,
-        "y": 51
+        "y": 63
       },
       "id": 21,
       "options": {
@@ -1541,7 +1705,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 69
       },
       "id": 22,
       "options": {
@@ -1610,8 +1774,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1626,7 +1789,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 77
       },
       "id": 23,
       "options": {
@@ -1695,8 +1858,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1711,7 +1873,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 73
+        "y": 85
       },
       "id": 24,
       "options": {
@@ -1772,7 +1934,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Chess Application Status",
-  "uid": "demn5fgdklgqoc",
-  "version": 32,
+  "uid": "ben1kpiywjsowa",
+  "version": 4,
   "weekStart": ""
 }

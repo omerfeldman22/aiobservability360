@@ -1,4 +1,4 @@
-autogen-agentchat
+autogen-agentchat==0.5.7
 autogen-ext==0.5.7
 python-chess
 chess-board
@@ -18,4 +18,4 @@ opentelemetry-util-http==0.54b1
 opentelemetry-instrumentation-httpx==0.54b1
 opentelemetry-instrumentation-openai==0.40.6
 opentelemetry-instrumentation-requests==0.54b1
-opentelemetry-instrumentation-mcp==-0.40.7
+opentelemetry-instrumentation-mcp==0.40.7

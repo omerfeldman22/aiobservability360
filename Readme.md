@@ -163,9 +163,13 @@ online_store_ui_loadbalancer_ip = "<online_store_ui_public_ip>"
 
 Navigate to the online store ui and start to play with the application, After that navigate to the grafana and the jaeger to see the telemetry visualization (it might take few minutes for the data to arrive).
 
-### 4. Online Store
+### 4. Chess Board Agent
 
-Online Store Application is a demo that simulates a complete online store. It functions as a target monitored application, providing essential services such as user management, product management, and order processing. This setup enables you to deploy and evaluate observability tools in a realistic environment.
+Change directory to "chess" folder
+
+
+
+
 
 ## Online Store Services
 
