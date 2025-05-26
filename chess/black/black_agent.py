@@ -23,23 +23,30 @@ log = instruments["logger"]
 
 MAX_NUMBER_OF_RETRIES = 5
 
+AZURE_OPENAI_MODEL = "gpt-4.1" # ["gpt-4o", "gpt-4o-mini", "o4-mini", "gpt-4.1-mini", "gpt-4.1", "o3-mini"]
+AZURE_OPENAI_DEPLOYMENT = "agentsobs360-gpt-4.1"
+AZURE_OPENAI_API_VERSION = "2025-01-01-preview"
+
 mcp = FastMCP(name="Black Pieces Chess Agent",
               description="Black pieces chess agent using SSE transport",
               base_url="http://localhost:8000",
               describe_all_responses=True,  # Include all possible response schemas
               describe_full_response_schema=True)  # Include full JSON schema in descriptions)
 
-def initiate_ai_agent(azure_openai_model: str, azure_openai_deployment: str, azure_openai_api_version: str):
+def initiate_ai_agent():
     
     with tracer.start_as_current_span("init_agent") as span:
         
         span.set_attribute("azure_endpoint", os.getenv("AZURE_OPENAI_ENDPOINT"))
+        span.set_attribute("azure_deployment", AZURE_OPENAI_DEPLOYMENT)
+        span.set_attribute("azure_openai_model", AZURE_OPENAI_MODEL)
+        span.set_attribute("azure_openai_api_version", AZURE_OPENAI_API_VERSION)
         
         client = AzureOpenAIChatCompletionClient(
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            azure_deployment=azure_openai_deployment,
-            model=azure_openai_model,
-            api_version=azure_openai_api_version
+            azure_deployment=AZURE_OPENAI_DEPLOYMENT,
+            model=AZURE_OPENAI_MODEL,
+            api_version=AZURE_OPENAI_API_VERSION
         )
 
         agent = AssistantAgent(
@@ -75,18 +82,15 @@ def initiate_ai_agent(azure_openai_model: str, azure_openai_deployment: str, azu
     name="move",
     description="Return a legal BLACK move in UCI for the provided FEN.",
 )
-async def move_tool(fen: str, azure_openai_model: str, azure_openai_deployment: str, azure_openai_api_version: str):
+async def move_tool(fen: str):
     """Return ONE legal black move in UCI."""
     log.info("[BlackAgent] Received FEN %s", fen)
     
     with tracer.start_as_current_span("make_move") as span:
         span.set_attribute("current_player", "black")
-        span.set_attribute("azure_openai_model", azure_openai_model)
-        span.set_attribute("azure_openai_deployment", azure_openai_deployment)
-        span.set_attribute("azure_openai_api_version", azure_openai_api_version)
         span.set_attribute("FEN", fen)
         
-        agent = initiate_ai_agent(azure_openai_model, azure_openai_deployment, azure_openai_api_version)
+        agent = initiate_ai_agent()
 
         # 1─ Parse FEN 
         try:
@@ -141,5 +145,5 @@ async def move_tool(fen: str, azure_openai_model: str, azure_openai_deployment: 
         return {"error": f"illegal move {uci}"}
 
 if __name__ == "__main__":
-    log.info("Starting Black Player Agent...")
+    log.info("Starting Black Pieces Player Agent...")
     mcp.run(transport='sse')

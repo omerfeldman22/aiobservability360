@@ -1,0 +1,20 @@
+{
+    "servers": {
+        "white-chess-agent_stdio": {
+            "type": "sse",
+            "command": "/Users/vladfeigin/myprojects/agents/geekacademy/aiobservability360/chess/.venv/bin/python",
+            "args": ["/Users/vladfeigin/myprojects/agents/geekacademy/aiobservability360/chess/white/white_agent.py"],
+            "env": {
+                "PYTHONPATH": "/Users/vladfeigin/myprojects/agents/geekacademy/aiobservability360/chess"
+            }
+        },
+        "black-chess-agent_stdio": {
+            "type": "sse",
+            "command": "/Users/vladfeigin/myprojects/agents/geekacademy/aiobservability360/chess/.venv/bin/python",
+            "args": ["/Users/vladfeigin/myprojects/agents/geekacademy/aiobservability360/chess/black/black_agent.py"],
+            "env": {
+                "PYTHONPATH": "/Users/vladfeigin/myprojects/agents/geekacademy/aiobservability360/chess"
+            }
+        }
+    }
+}
