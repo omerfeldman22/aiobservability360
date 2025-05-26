@@ -96,8 +96,18 @@ resource "kubernetes_deployment" "chess_black_agent" {
           }
 
           env {
+            name  = "AZURE_OPENAI_MODEL"
+            value = var.openai_model
+          }
+
+          env {
             name  = "AZURE_OPENAI_DEPLOYMENT"
-            value = "${var.base_name}-gpt-4o"
+            value = "${var.base_name}-${var.openai_model}"
+          }
+
+          env {
+            name  = "AZURE_OPENAI_API_VERSION"
+            value = var.openai_api_version
           }
         }
       }

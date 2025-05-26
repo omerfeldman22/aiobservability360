@@ -23,5 +23,10 @@ variable "data_location" {
 
 variable "openai_model" {
   description = "The OpenAI model to use."
-  default     = "gpt-4o"
+  default     = "gpt-4.1"
+}
+
+variable "openai_api_version" {
+  description = "The OpenAI API version to use."
+  default     = "2025-01-01-preview"
 }

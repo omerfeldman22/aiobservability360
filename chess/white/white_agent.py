@@ -23,9 +23,9 @@ log = instruments["logger"]
 
 MAX_NUMBER_OF_RETRIES = 5
 
-AZURE_OPENAI_MODEL = "gpt-4.1" # ["gpt-4o", "gpt-4o-mini", "o4-mini", "gpt-4.1-mini", "gpt-4.1", "o3-mini"]
-AZURE_OPENAI_DEPLOYMENT = "agentsobs360-gpt-4.1"
-AZURE_OPENAI_API_VERSION = "2025-01-01-preview" 
+AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 
 
 mcp = FastMCP(name="White Chess Agent",

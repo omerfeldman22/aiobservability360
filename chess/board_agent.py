@@ -40,10 +40,10 @@ WHITE_URL = os.getenv("WHITE_URL", "http://localhost:8001")
 BLACK_URL = os.getenv("BLACK_URL", "http://localhost:8002")
 
 # Constants
-AZURE_OPENAI_MODEL = "gpt-4.1" # ["gpt-4o", "gpt-4o-mini", "o4-mini", "gpt-4.1-mini", "gpt-4.1", "o3-mini"]
-AZURE_OPENAI_DEPLOYMENT = f"{os.getenv("BASE_NAME")}-gpt-4.1" # ["{os.getenv("BASE_NAME")}-gpt-4o", "{os.getenv("BASE_NAME")}-gpt-4o-mini", "{os.getenv("BASE_NAME")}-o4-mini", "{os.getenv("BASE_NAME")}-gpt-4.1-mini", "{os.getenv("BASE_NAME")}-gpt-4.1", "{os.getenv("BASE_NAME")}-o3-mini"]
-AZURE_OPENAI_API_VERSION = "2025-01-01-preview" # ["2025-01-01-preview"]
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "https://swedencentral.api.cognitive.microsoft.com")
+AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 
 # Validate required environment variables
