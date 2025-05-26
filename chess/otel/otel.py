@@ -17,6 +17,7 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.openai import OpenAIInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.mcp import McpInstrumentor
 
 
 from dotenv import load_dotenv
@@ -81,6 +82,7 @@ def configure_telemetry(service_name: str, service_version: str, deployment_env:
     OpenAIInstrumentor().instrument(capture_response=True)                # record prompt/response length
     RequestsInstrumentor().instrument()
     HTTPXClientInstrumentor().instrument()
+    McpInstrumentor().instrument()
 
     # Use a combined name for meter and tracer instead of __name__
     identifier = f"{service_name}-{service_version}"
