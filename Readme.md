@@ -167,28 +167,11 @@ Navigate to the online store ui and start to play with the application, After th
 
 Change directory to "chess" folder
 
-
-
-
-
-## Online Store Services
-
-The online store is composed of several services:
-1. **User Service**  
-    Manages online store user accounts.
-    Located in the `online_store\user` directory.
-2. **Product Service**  
-    Located in the `online_store/product` directory.  
-    Manages product information and catalog data, ensuring the seamless handling of your inventory details.  
-3. **Cart Service**  
-    Manages user shopping carts.
-    Located in the `online_store\cart` directory.
-4. **Order Service**  
-    Order processing.
-    Located in the `online_store\order` directory.
-5. **Online Store UI**
-    The online store UI.
-    Located in the `online_store\ui` directory.
+run the followings:
+```
+pip3 install -r requirements.txt
+python3 board_agent.py
+```
 
 ### 5. Cleaning Up
 
