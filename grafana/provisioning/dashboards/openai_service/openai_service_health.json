@@ -638,7 +638,7 @@
           "resultFormat": "table"
         }
       ],
-      "title": "Chat Comletion Create Operations",
+      "title": "Chat Completion Create Operations",
       "transparent": true,
       "type": "stat"
     },
